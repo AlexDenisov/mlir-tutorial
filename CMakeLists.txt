@@ -13,8 +13,28 @@ ExternalProject_Add(MRuby
   BUILD_IN_SOURCE ON
 )
 
+find_package(LLVM CONFIG REQUIRED)
+message("Using LLVM_CONFIG: ${LLVM_CONFIG}")
+find_package(MLIR CONFIG REQUIRED)
+message("Using MLIR_CONFIG: ${MLIR_CONFIG}")
+
+list(APPEND CMAKE_MODULE_PATH "${LLVM_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${MLIR_DIR}")
+include(AddLLVM)
+include(TableGen)
+include(AddMLIR)
+
 add_executable(ruby_mlir_tutorial main.cpp)
 add_dependencies(ruby_mlir_tutorial MRuby)
-target_link_libraries(ruby_mlir_tutorial PRIVATE mruby mruby_core)
+target_link_libraries(ruby_mlir_tutorial PRIVATE
+  mruby
+  mruby_core
+  MLIRStandard
+)
 target_link_directories(ruby_mlir_tutorial PRIVATE ${MRUBY_DIR}/build/host/lib)
-target_include_directories(ruby_mlir_tutorial PRIVATE ${MRUBY_DIR}/include)
+target_include_directories(ruby_mlir_tutorial PRIVATE
+  ${MRUBY_DIR}/include
+  ${CMAKE_SOURCE_DIR}
+  ${MLIR_INCLUDE_DIRS}
+  ${LLVM_INCLUDE_DIRS}
+)
