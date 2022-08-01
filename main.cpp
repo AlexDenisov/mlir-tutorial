@@ -1,3 +1,5 @@
+#include "Dialects/MRB/MRB.h"
+
 #include <llvm/Support/ManagedStatic.h>
 #include <mlir/Dialect/StandardOps/IR/Ops.h>
 #include <mlir/IR/Builders.h>
@@ -10,6 +12,7 @@ int main() {
 
   mlir::DialectRegistry registry;
   registry.insert<mlir::StandardOpsDialect>();
+  registry.insert<mrb::MrbDialect>();
   mlir::MLIRContext context(registry);
   context.loadAllAvailableDialects();
 
@@ -17,14 +20,19 @@ int main() {
   auto location = mlir::FileLineColLoc::get(builder.getStringAttr("<memory>"), 0, 0);
 
   auto module = builder.create<mlir::ModuleOp>(location);
-  auto functionType = builder.getFunctionType({}, builder.getIntegerType(64));
+
+  auto state_t = mrb::stateType::get(&context);
+  auto value_t = mrb::valueType::get(&context);
+
+
+
+  auto functionType = builder.getFunctionType({state_t, value_t}, value_t);
   auto function = builder.create<mlir::FuncOp>(location, "top", functionType);
   module.push_back(function);
   builder.setInsertionPointToStart(function.addEntryBlock());
 
-  auto x = builder.create<mlir::ConstantOp>(location,
-                                            builder.getIntegerAttr(builder.getIntegerType(64), 42));
-  builder.create<mlir::ReturnOp>(location, mlir::ValueRange({x}));
+ auto self = builder.create<mrb::LoadSelfOp>(location, value_t, function.getArgument(0));
+  builder.create<mlir::ReturnOp>(location, mlir::ValueRange({self}));
 
   module.print(llvm::errs());
 
