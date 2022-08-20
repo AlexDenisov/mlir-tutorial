@@ -26,6 +26,7 @@ include(AddMLIR)
 
 add_subdirectory(Dialects)
 add_subdirectory(Conversions)
+add_subdirectory(Compilation)
 
 add_executable(ruby_mlir_tutorial main.cpp)
 add_dependencies(ruby_mlir_tutorial MRuby)

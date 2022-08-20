@@ -16,6 +16,7 @@ template <typename Op>
 static mlir::Value getOrCreateGlobalString(mlir::OpBuilder &builder, Op op, llvm::StringRef name,
                                            llvm::StringRef value) {
   auto loc = op.getLoc();
+  auto nullTerm = value.str() + '\0';
   auto module = op->template getParentOfType<mlir::ModuleOp>();
   // Create the global at the entry of the module.
   mlir::LLVM::GlobalOp global;
@@ -23,10 +24,10 @@ static mlir::Value getOrCreateGlobalString(mlir::OpBuilder &builder, Op op, llvm
     mlir::OpBuilder::InsertionGuard insertGuard(builder);
     builder.setInsertionPointToStart(module.getBody());
     auto type = mlir::LLVM::LLVMArrayType::get(mlir::IntegerType::get(builder.getContext(), 8),
-                                               value.size());
+                                               nullTerm.size());
     global = builder.create<mlir::LLVM::GlobalOp>(
         loc, type,
-        /*isConstant=*/true, mlir::LLVM::Linkage::Internal, name, builder.getStringAttr(value),
+        /*isConstant=*/true, mlir::LLVM::Linkage::Internal, name, builder.getStringAttr(nullTerm),
         /*alignment=*/0);
   }
 
@@ -126,8 +127,8 @@ struct CallOpLowering : public detail::MrbConversionPattern<mrb::CallOp> {
 
     auto module = op->getParentOfType<mlir::ModuleOp>();
     auto func = detail::lookupOrCreateFn(
-        module, "mrb_funcall",
-        {state_t, value_t, calleeName.getType(), op.argcAttr().getType(), value_t}, value_t,
+        module, "mrb_funcall", {state_t, value_t, calleeName.getType(), op.argcAttr().getType()},
+        value_t,
         /* isVarArg= */ true);
 
     auto replacement = mlir::LLVM::createLLVMCall(rewriter, op->getLoc(), func, argv, value_t);
