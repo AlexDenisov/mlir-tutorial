@@ -1,5 +1,6 @@
 #include "Dialects/MRB/MRB.h"
 
+#include "Conversions/LLVMBitcode.h"
 #include "Conversions/MrbToLLVM.h"
 
 #include <llvm/Support/ManagedStatic.h>
@@ -44,6 +45,10 @@ int main() {
   mrbToLLVM(context, module);
 
   module.print(llvm::errs());
+
+  llvm::LLVMContext llvmContext;
+  auto bitcode = covertToBitcode(context, llvmContext, module);
+  bitcode->print(llvm::errs(), nullptr);
 
   return 0;
 }

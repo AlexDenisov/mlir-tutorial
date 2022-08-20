@@ -91,11 +91,13 @@ struct LoadIOpLowering : public detail::MrbConversionPattern<mrb::LoadIOp> {
                                       mlir::ConversionPatternRewriter &rewriter) const final {
     auto state_t = typeConverter->convertType(mrb::stateType::get(getContext()));
     auto value_t = typeConverter->convertType(mrb::valueType::get(getContext()));
-    auto i32_t = rewriter.getIntegerType(32);
+    auto number_t = op.numberAttr().getType();
 
     auto module = op->getParentOfType<mlir::ModuleOp>();
-    auto func = detail::lookupOrCreateFn(module, "rt_load_i", {state_t, i32_t}, value_t);
-    auto replacement = mlir::LLVM::createLLVMCall(rewriter, op->getLoc(), func, operands, value_t);
+    auto func = detail::lookupOrCreateFn(module, "rt_load_i", {state_t, number_t}, value_t);
+    auto value = rewriter.create<mlir::LLVM::ConstantOp>(op->getLoc(), number_t, op.numberAttr());
+    auto replacement = mlir::LLVM::createLLVMCall(rewriter, op->getLoc(), func,
+                                                  {operands.front(), value}, value_t);
     rewriter.replaceOp(op, {replacement});
     return mlir::success();
   }
@@ -128,7 +130,7 @@ struct CallOpLowering : public detail::MrbConversionPattern<mrb::CallOp> {
         {state_t, value_t, calleeName.getType(), op.argcAttr().getType(), value_t}, value_t,
         /* isVarArg= */ true);
 
-    auto replacement = mlir::LLVM::createLLVMCall(rewriter, op->getLoc(), func, operands, value_t);
+    auto replacement = mlir::LLVM::createLLVMCall(rewriter, op->getLoc(), func, argv, value_t);
     rewriter.replaceOp(op, {replacement});
     return mlir::success();
   }
