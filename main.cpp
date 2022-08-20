@@ -24,15 +24,18 @@ int main() {
   auto state_t = mrb::stateType::get(&context);
   auto value_t = mrb::valueType::get(&context);
 
-
-
   auto functionType = builder.getFunctionType({state_t, value_t}, value_t);
   auto function = builder.create<mlir::FuncOp>(location, "top", functionType);
   module.push_back(function);
   builder.setInsertionPointToStart(function.addEntryBlock());
 
- auto self = builder.create<mrb::LoadSelfOp>(location, value_t, function.getArgument(0));
-  builder.create<mlir::ReturnOp>(location, mlir::ValueRange({self}));
+  auto self = builder.create<mrb::LoadSelfOp>(location, value_t, function.getArgument(0));
+  auto number = builder.create<mrb::LoadIOp>(location, value_t, function.getArgument(0),
+                                             builder.getUI32IntegerAttr(42));
+  auto call = builder.create<mrb::CallOp>(location, value_t, function.getArgument(0), self,
+                                          builder.getStringAttr("puts"),
+                                          builder.getUI32IntegerAttr(1), mlir::ValueRange{number});
+  builder.create<mlir::ReturnOp>(location, mlir::ValueRange({call}));
 
   module.print(llvm::errs());
 
