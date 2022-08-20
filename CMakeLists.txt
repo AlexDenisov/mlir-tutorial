@@ -25,6 +25,7 @@ include(TableGen)
 include(AddMLIR)
 
 add_subdirectory(Dialects)
+add_subdirectory(Conversions)
 
 add_executable(ruby_mlir_tutorial main.cpp)
 add_dependencies(ruby_mlir_tutorial MRuby)
@@ -33,6 +34,7 @@ target_link_libraries(ruby_mlir_tutorial PRIVATE
   mruby_core
   MLIRStandard
   MRB
+  Conversions
 )
 target_link_directories(ruby_mlir_tutorial PRIVATE ${MRUBY_DIR}/build/host/lib)
 target_include_directories(ruby_mlir_tutorial PRIVATE

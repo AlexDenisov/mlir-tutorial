@@ -1,5 +1,7 @@
 #include "Dialects/MRB/MRB.h"
 
+#include "Conversions/MrbToLLVM.h"
+
 #include <llvm/Support/ManagedStatic.h>
 #include <mlir/Dialect/StandardOps/IR/Ops.h>
 #include <mlir/IR/Builders.h>
@@ -36,6 +38,10 @@ int main() {
                                           builder.getStringAttr("puts"),
                                           builder.getUI32IntegerAttr(1), mlir::ValueRange{number});
   builder.create<mlir::ReturnOp>(location, mlir::ValueRange({call}));
+
+  module.print(llvm::errs());
+
+  mrbToLLVM(context, module);
 
   module.print(llvm::errs());
 
