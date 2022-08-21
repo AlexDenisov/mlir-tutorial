@@ -3,6 +3,7 @@ macro(compile_ruby input)
   add_custom_command(
     OUTPUT ${bc_output}
     COMMAND $<TARGET_FILE:ruby_mlir_tutorial> ${CMAKE_CURRENT_LIST_DIR}/${input} --output=${bc_output}
+    DEPENDS ruby_mlir_tutorial ${CMAKE_CURRENT_LIST_DIR}/${input}
   )
   add_custom_target(compile-${input}
     DEPENDS ${bc_output}

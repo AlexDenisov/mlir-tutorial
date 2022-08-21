@@ -8,6 +8,7 @@
 #include <mruby/compile.h>
 #include <mruby/opcode.h>
 #include <mruby/proc.h>
+#include <unordered_map>
 
 extern "C" {
 const char *mrb_debug_get_filename(mrb_state *mrb, const mrb_irep *irep, uint32_t pc);
@@ -50,6 +51,8 @@ mlir::ModuleOp procToModule(mlir::MLIRContext &context, struct mrb_state *mrb, s
 
   auto state = function.getArgument(0);
 
+  std::unordered_map<uint32_t, mlir::Value> defines;
+
   const mrb_irep *irep = proc->body.irep;
   for (uint16_t pc_offset = 0; pc_offset < irep->ilen; pc_offset++) {
     const mrb_code *pc_base = (irep->iseq + pc_offset);
@@ -70,14 +73,16 @@ mlir::ModuleOp procToModule(mlir::MLIRContext &context, struct mrb_state *mrb, s
       // OPCODE(LOADI,      BB)       /* R(a) = mrb_int(b) */
       regs.a = READ_B();
       regs.b = READ_B();
-      builder.create<mrb::LoadIOp>(location, mrb_value_t, state,
-                                   builder.getUI32IntegerAttr(regs.b));
+      auto value = builder.create<mrb::LoadIOp>(location, mrb_value_t, state,
+                                                builder.getUI32IntegerAttr(regs.b));
+      defines[regs.a] = value;
     } break;
 
     case OP_LOADSELF: {
       // OPCODE(LOADSELF,   B)        /* R[a] = self */
       regs.a = READ_B();
-      builder.create<mrb::LoadSelfOp>(location, mrb_value_t, state);
+      auto value = builder.create<mrb::LoadSelfOp>(location, mrb_value_t, state);
+      defines[regs.a] = value;
     } break;
 
     case OP_SSEND: {
@@ -93,20 +98,18 @@ mlir::ModuleOp procToModule(mlir::MLIRContext &context, struct mrb_state *mrb, s
       auto receiver = builder.create<mrb::LoadSelfOp>(location, mrb_value_t, state);
       llvm::SmallVector<mlir::Value> argv;
       for (size_t i = 0; i < argc; i++) {
-        auto arg = builder.create<mrb::LoadIOp>(location, mrb_value_t, state,
-                                                builder.getUI32IntegerAttr(42));
-        argv.push_back(arg);
+        argv.push_back(defines[regs.a + i + 1]);
       }
-      builder.create<mrb::CallOp>(location, mrb_value_t, state, receiver,
-                                  builder.getStringAttr(callName), builder.getUI32IntegerAttr(argc),
-                                  argv);
+      auto value = builder.create<mrb::CallOp>(location, mrb_value_t, state, receiver,
+                                               builder.getStringAttr(callName),
+                                               builder.getUI32IntegerAttr(argc), argv);
+      defines[regs.a] = value;
     } break;
     case OP_RETURN: {
       // OPCODE(RETURN,     B)        /* return R[a] (normal) */
       regs.a = READ_B();
-      auto retVal = builder.create<mrb::LoadIOp>(location, mrb_value_t, state,
-                                              builder.getUI32IntegerAttr(42));
-      builder.create<mlir::ReturnOp>(location, mlir::TypeRange({mrb_value_t}), mlir::ValueRange({retVal}));
+      builder.create<mlir::ReturnOp>(location, mlir::TypeRange({mrb_value_t}),
+                                     mlir::ValueRange({defines[regs.a]}));
     } break;
     default: {
       llvm::errs() << "Unsupported op: " << opcode_name(opcode) << "\n";
