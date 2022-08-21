@@ -2,7 +2,7 @@ macro(compile_ruby input)
   set (bc_output ${CMAKE_BINARY_DIR}/${input}.bc)
   add_custom_command(
     OUTPUT ${bc_output}
-    COMMAND $<TARGET_FILE:ruby_mlir_tutorial> --output=${bc_output}
+    COMMAND $<TARGET_FILE:ruby_mlir_tutorial> ${CMAKE_CURRENT_LIST_DIR}/${input} --output=${bc_output}
   )
   add_custom_target(compile-${input}
     DEPENDS ${bc_output}
@@ -22,4 +22,4 @@ macro(compile_ruby input)
     )
 endmacro()
 
-compile_ruby(hello)
+compile_ruby(hello.rb)
