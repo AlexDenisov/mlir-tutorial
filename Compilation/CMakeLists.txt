@@ -24,3 +24,4 @@ macro(compile_ruby input)
 endmacro()
 
 compile_ruby(hello.rb)
+compile_ruby(ssa.rb)
