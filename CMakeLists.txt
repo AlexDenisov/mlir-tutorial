@@ -24,6 +24,7 @@ include(AddLLVM)
 include(TableGen)
 include(AddMLIR)
 
+add_subdirectory(hello-mruby)
 add_subdirectory(Dialects)
 add_subdirectory(Conversions)
 add_subdirectory(Compilation)
